@@ -1,0 +1,236 @@
+---
+title: "ST 502 Project 1"
+author: "Eric Warren, Chandler Ellsworth, Kevin Krupa"
+date: "`r Sys.Date()`"
+urlcolor: blue
+header-includes:
+  - \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "H", out.extra = "")
+options(scipen = 999)
+```
+
+```{r output setup, eval=FALSE}
+# This code allows us to render a pdf document
+rmarkdown::render("~/ST-502-Project-1/st502_groupk.Rmd", 
+              output_format = "pdf_document", 
+              output_options = list(
+                toc = TRUE, 
+                toc_depth = 3,
+                number_sections = TRUE,
+                extra_dependencies = "float",
+                always_allow_html = TRUE
+                )
+              )
+```
+
+# Background of Project
+
+In this project, we are going to try to understand what good properties of confidence are. The main things we are going to consider are:
+
+- Proportion of intervals that capture the true value (hopefully $1 - \alpha$)
+- Proportion of intervals that miss above and proportion that miss below
+- The average length of the interval
+
+# Creation of Data
+
+We are going to do this by comparing the performance of these intervals we are making for inference for various values of $p$ and $n$. To start of with we will want to generate some data for these different combinations of $p$ and $n$. The data has been generated which we will show briefly what it looks like.
+```{r generate data}
+# install.packages("tidyverse")
+library(tidyverse)
+
+# Initialize data
+set.seed(999) # Allows us to reproduce results
+p <- seq(from = .01, to = .99, length.out = 30) # Get values for p as combinations
+n <- c(15, 100, 200) # Get values of n
+N <- 1500 # Set N to be the number of samples we want for each grouping
+
+df <- data.frame()
+temp <- data.frame()
+
+for (i in n) {
+  for (j in p) {
+    temp <- data.frame(n = i, 
+                       p = j, 
+                       y_i = rbinom(N, size = i, prob = j)
+                       )
+    df <- rbind(df, temp)
+  }
+}
+
+# This code just double checks to make sure we got 1500 values from each combination -- ALL should say 1500 for count
+# df %>%
+#   group_by(n, p) %>%
+#   summarize(count = n())
+
+# Show the first observations and save as a tibble
+df <- df %>%
+  mutate(p_hat = y_i / n)
+head(df)
+
+# Now show last observations
+tail(df)
+```
+
+Please note for this data that it is in *long format* which means that each combination of $n$, $p$, and $y_i$ is shown as one row. So for example, if we want to find all the randomly generated data for the combination of $n = 15$ and $p = 0.01$, we would want to find the `r N` rows that show its corresponding $y_i$ values.
+
+# Results
+
+## Wald Confidence Intervals
+
+Here we took a look at using the Wald Confidence Interval.
+```{r wald ci}
+# Function for Wald Interval
+waldCI <- function(p, n, alpha = 0.05){
+  c(
+    p - qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n),
+    p + qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n)
+  )
+}
+
+# Get Wald Interval calculations for each n and p
+expected_wald_ci <- data.frame()
+temp2 <- data.frame()
+for (i in n) {
+  for (j in p) {
+    temp2 <- data.frame(n = i,
+                        p = j, 
+                        lower_ci = waldCI(p = j, n = i)[[1]],
+                        upper_ci = waldCI(p = j, n = i)[[2]]
+                        )
+    expected_wald_ci <- rbind(expected_wald_ci, temp2)
+  }
+} # Note that expected_wald_ci now has all the n, p, lower_ci, and upper_ci values
+
+# Make function to get transform our variables to see how well the CIs do
+mergeDF <- function(df1, df2 = df) {
+  merge(df2, df1, by = c("p", "n")) %>%
+    mutate(count = ifelse((p_hat < upper_ci) & (p_hat > lower_ci), 1, 0),
+            count_under = ifelse(p_hat <= lower_ci, 1, 0),
+           count_over = ifelse(p_hat >= upper_ci, 1, 0)
+           )
+}
+
+# Make function to get final df to use for analysis
+final_summary <- function(data) {
+  data %>%
+    group_by(n, p) %>%
+    summarize(prop = mean(count),
+              int_length = mean(upper_ci - lower_ci),
+              num_under = mean(count_under),
+              num_over = mean(count_over)
+              )
+}
+
+# Merge our data with df and expected_wald_ci to get all the information together
+df_wald <- mergeDF(df1 = expected_wald_ci)
+
+# Make table that stores the values of proportion of contained in interval
+df_wald_proportion <- final_summary(df_wald)
+```
+
+## Adjusted Wald Interval
+
+Here we took a look at using the Adjusted Wald Confidence Interval.
+```{r adj wald ci}
+# Function for Adj Wald Interval
+adj_waldCI <- function(y, n, alpha = 0.05){
+  p <- (y + 2) / (n + 4) # Get value of p from this approach
+  c(
+    p - qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n),
+    p + qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n)
+  )
+}
+
+# Get Adj Wald Interval calculations for each n and p
+expected_adj_wald_ci <- data.frame()
+temp3 <- data.frame()
+for (i in n) {
+  for (j in p) {
+    temp3 <- data.frame(n = i,
+                        p = j, 
+                        lower_ci = adj_waldCI(y = i * j, n = i)[[1]],
+                        upper_ci = adj_waldCI(y = i * j, n = i)[[2]]
+                        )
+    expected_adj_wald_ci <- rbind(expected_adj_wald_ci, temp3)
+  }
+} # Note that expected_adj_wald_ci now has all the n, p, lower_ci, and upper_ci values
+
+# Merge our data with df and expected_adj_wald_ci to get all the information together
+df_adj_wald <- mergeDF(expected_adj_wald_ci)
+
+# Make table that stores the values of proportion of contained in interval
+df_adj_wald_proportion <- final_summary(df_adj_wald)
+```
+
+## Clopper-Pearson (Exact) Interval
+
+Here we took a look at using the Clopper-Pearson (Exact) Confidence Interval.
+```{r exact ci}
+# Function for Exact Interval
+exactCI <- function(y, n, alpha = 0.05){
+  c(
+    (1 + ((n - y + 1) / (y * qf(1 - (alpha / 2), 2 * y, 2 * (n - y + 1), lower.tail = F)))) ** (-1),
+    (1 + ((n - y) / ((y + 1) * qf(alpha / 2, 2 * (y + 1), 2 * (n - y), lower.tail = F)))) ** (-1)
+  )
+} # Note here we could also use GenBinomApps::clopper.pearson.ci() function to get the exact same values
+
+# Get Exact Interval calculations for each n and p
+expected_exact_ci <- data.frame()
+temp4 <- data.frame()
+for (i in n) {
+  for (j in p) {
+    temp4 <- data.frame(n = i,
+                        p = j, 
+                        lower_ci = exactCI(y = i * j, n = i)[[1]],
+                        upper_ci = exactCI(y = i * j, n = i)[[2]]
+                        )
+    expected_exact_ci <- rbind(expected_exact_ci, temp4)
+  }
+} # Note that expected_exact_ci now has all the n, p, lower_ci, and upper_ci values
+
+# Merge our data with df and expected_exact_ci to get all the information together
+df_exact <- mergeDF(expected_exact_ci)
+
+# Make table that stores the values of proportion of contained in interval
+df_exact_proportion <- final_summary(df_exact)
+```
+
+## Score Interval
+
+Here we took a look at using the Score Confidence Interval.
+```{r score ci}
+# Function for Score Interval
+scoreCI <- function(p, n, alpha = 0.05){
+  z <- right_side <- qnorm(1 - (alpha / 2)) # z-score value
+  left_side <- p + (z ** 2 / (2 * n)) # Estimate value before subtracting or adding
+  right_side <- z * sqrt(((p * (1 - p)) + (z ** 2 / (4 * n))) / n) # Everything in sqrt to add or subtract to original estimate
+  denominator <- 1 + (z ** 2 / n) # Divided by this value
+  c(
+    (left_side - right_side) / denominator,
+    (left_side + right_side) / denominator
+  )
+} 
+
+# Get Score Interval calculations for each n and p
+expected_score_ci <- data.frame()
+temp5 <- data.frame()
+for (i in n) {
+  for (j in p) {
+    temp5 <- data.frame(n = i,
+                        p = j, 
+                        lower_ci = scoreCI(p = j, n = i)[[1]],
+                        upper_ci = scoreCI(p = j, n = i)[[2]]
+                        )
+    expected_score_ci <- rbind(expected_score_ci, temp5)
+  }
+} # Note that expected_score_ci now has all the n, p, lower_ci, and upper_ci values
+
+# Merge our data with df and expected_score_ci to get all the information together
+df_score <- mergeDF(expected_score_ci)
+
+# Make table that stores the values of proportion of contained in interval
+df_score_proportion <- final_summary(df_score)
+```
