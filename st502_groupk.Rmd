@@ -82,34 +82,21 @@ Please note for this data that it is in *long format* which means that each comb
 
 Here we took a look at using the Wald Confidence Interval.
 ```{r wald ci}
-# Function for Wald Interval
-waldCI <- function(p, n, alpha = 0.05){
-  c(
-    p - qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n),
-    p + qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n)
-  )
-}
-
 # Get Wald Interval calculations for each n and p
-expected_wald_ci <- data.frame()
-temp2 <- data.frame()
-for (i in n) {
-  for (j in p) {
-    temp2 <- data.frame(n = i,
-                        p = j, 
-                        lower_ci = waldCI(p = j, n = i)[[1]],
-                        upper_ci = waldCI(p = j, n = i)[[2]]
-                        )
-    expected_wald_ci <- rbind(expected_wald_ci, temp2)
-  }
-} # Note that expected_wald_ci now has all the n, p, lower_ci, and upper_ci values
+expected_wald_ci <- df %>%
+  mutate(
+    alpha = .05,
+    lower_ci = ifelse(p_hat - qnorm(1 - (alpha / 2)) * sqrt((p_hat * (1 - p_hat)) / n) < 0, 0, p_hat - qnorm(1 - (alpha / 2)) * sqrt((p_hat * (1 - p_hat)) / n)),
+    upper_ci = ifelse(p_hat + qnorm(1 - (alpha / 2)) * sqrt((p_hat * (1 - p_hat)) / n) > 1, 1, p_hat + qnorm(1 - (alpha / 2)) * sqrt((p_hat * (1 - p_hat)) / n))
+  ) %>%
+  dplyr::select(-alpha)
 
 # Make function to get transform our variables to see how well the CIs do
-mergeDF <- function(df1, df2 = df) {
-  merge(df2, df1, by = c("p", "n")) %>%
-    mutate(count = ifelse((p_hat < upper_ci) & (p_hat > lower_ci), 1, 0),
-            count_under = ifelse(p_hat <= lower_ci, 1, 0),
-           count_over = ifelse(p_hat >= upper_ci, 1, 0)
+updateDF <- function(df) {
+  df %>%
+    mutate(count = ifelse((p < upper_ci) & (p > lower_ci), 1, 0),
+           count_under = ifelse(p <= lower_ci, 1, 0),
+           count_over = ifelse(p >= upper_ci, 1, 0)
            )
 }
 
@@ -118,14 +105,14 @@ final_summary <- function(data) {
   data %>%
     group_by(n, p) %>%
     summarize(prop = mean(count),
-              int_length = mean(upper_ci - lower_ci),
               num_under = mean(count_under),
-              num_over = mean(count_over)
+              num_over = mean(count_over),
+              int_length = mean(upper_ci - lower_ci)
               )
 }
 
 # Merge our data with df and expected_wald_ci to get all the information together
-df_wald <- mergeDF(df1 = expected_wald_ci)
+df_wald <- updateDF(df = expected_wald_ci)
 
 # Make table that stores the values of proportion of contained in interval
 df_wald_proportion <- final_summary(df_wald)
@@ -136,30 +123,21 @@ df_wald_proportion <- final_summary(df_wald)
 Here we took a look at using the Adjusted Wald Confidence Interval.
 ```{r adj wald ci}
 # Function for Adj Wald Interval
-adj_waldCI <- function(y, n, alpha = 0.05){
-  p <- (y + 2) / (n + 4) # Get value of p from this approach
-  c(
-    p - qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n),
-    p + qnorm(1 - (alpha / 2)) * sqrt((p * (1 - p)) / n)
-  )
-}
-
-# Get Adj Wald Interval calculations for each n and p
-expected_adj_wald_ci <- data.frame()
-temp3 <- data.frame()
-for (i in n) {
-  for (j in p) {
-    temp3 <- data.frame(n = i,
-                        p = j, 
-                        lower_ci = adj_waldCI(y = i * j, n = i)[[1]],
-                        upper_ci = adj_waldCI(y = i * j, n = i)[[2]]
-                        )
-    expected_adj_wald_ci <- rbind(expected_adj_wald_ci, temp3)
-  }
-} # Note that expected_adj_wald_ci now has all the n, p, lower_ci, and upper_ci values
+expected_adj_wald_ci <- df %>%
+  mutate(
+    alpha = .05,
+    p_hat2 = (y_i + 2) / (n + 4), # Get value of p from this approach
+    lower_ci = ifelse(p_hat2 - qnorm(1 - (alpha / 2)) * sqrt((p_hat2 * (1 - p_hat2)) / n) < 0, 
+                      0, 
+                      p_hat2 - qnorm(1 - (alpha / 2)) * sqrt((p_hat2 * (1 - p_hat2)) / n)),
+    upper_ci = ifelse(p_hat2 + qnorm(1 - (alpha / 2)) * sqrt((p_hat2 * (1 - p_hat2)) / n) > 1, 
+                      1, 
+                      p_hat2 + qnorm(1 - (alpha / 2)) * sqrt((p_hat2 * (1 - p_hat2)) / n))
+  ) %>%
+  dplyr::select(- c(alpha, p_hat2))
 
 # Merge our data with df and expected_adj_wald_ci to get all the information together
-df_adj_wald <- mergeDF(expected_adj_wald_ci)
+df_adj_wald <- updateDF(expected_adj_wald_ci)
 
 # Make table that stores the values of proportion of contained in interval
 df_adj_wald_proportion <- final_summary(df_adj_wald)
@@ -169,30 +147,25 @@ df_adj_wald_proportion <- final_summary(df_adj_wald)
 
 Here we took a look at using the Clopper-Pearson (Exact) Confidence Interval.
 ```{r exact ci}
-# Function for Exact Interval
-exactCI <- function(y, n, alpha = 0.05){
-  c(
-    (1 + ((n - y + 1) / (y * qf(1 - (alpha / 2), 2 * y, 2 * (n - y + 1), lower.tail = F)))) ** (-1),
-    (1 + ((n - y) / ((y + 1) * qf(alpha / 2, 2 * (y + 1), 2 * (n - y), lower.tail = F)))) ** (-1)
-  )
-} # Note here we could also use GenBinomApps::clopper.pearson.ci() function to get the exact same values
-
 # Get Exact Interval calculations for each n and p
-expected_exact_ci <- data.frame()
-temp4 <- data.frame()
-for (i in n) {
-  for (j in p) {
-    temp4 <- data.frame(n = i,
-                        p = j, 
-                        lower_ci = exactCI(y = i * j, n = i)[[1]],
-                        upper_ci = exactCI(y = i * j, n = i)[[2]]
-                        )
-    expected_exact_ci <- rbind(expected_exact_ci, temp4)
-  }
-} # Note that expected_exact_ci now has all the n, p, lower_ci, and upper_ci values
+expected_exact_ci <- df %>%
+  mutate(
+    alpha = 0.05,
+    lower_ci = ifelse(
+      ((y_i == 0) | ((1 + ((n - y_i + 1) / (y_i * qf(1 - (alpha / 2), 2 * y_i, 2 * (n - y_i + 1), lower.tail = F)))) ** (-1) < 0)),
+      0,
+      (1 + ((n - y_i + 1) / (y_i * qf(1 - (alpha / 2), 2 * y_i, 2 * (n - y_i + 1), lower.tail = F)))) ** (-1)
+    ),
+    upper_ci = ifelse(
+      ((y_i == n) | ((1 + ((n - y_i) / ((y_i + 1) * qf(alpha / 2, 2 * (y_i + 1), 2 * (n - y_i), lower.tail = F)))) ** (-1) > 1)),
+      1,
+      (1 + ((n - y_i) / ((y_i + 1) * qf(alpha / 2, 2 * (y_i + 1), 2 * (n - y_i), lower.tail = F)))) ** (-1)
+    )
+  ) %>%
+  dplyr::select(-alpha)
 
 # Merge our data with df and expected_exact_ci to get all the information together
-df_exact <- mergeDF(expected_exact_ci)
+df_exact <- updateDF(expected_exact_ci)
 
 # Make table that stores the values of proportion of contained in interval
 df_exact_proportion <- final_summary(df_exact)
@@ -203,33 +176,26 @@ df_exact_proportion <- final_summary(df_exact)
 Here we took a look at using the Score Confidence Interval.
 ```{r score ci}
 # Function for Score Interval
-scoreCI <- function(p, n, alpha = 0.05){
-  z <- right_side <- qnorm(1 - (alpha / 2)) # z-score value
-  left_side <- p + (z ** 2 / (2 * n)) # Estimate value before subtracting or adding
-  right_side <- z * sqrt(((p * (1 - p)) + (z ** 2 / (4 * n))) / n) # Everything in sqrt to add or subtract to original estimate
-  denominator <- 1 + (z ** 2 / n) # Divided by this value
-  c(
-    (left_side - right_side) / denominator,
-    (left_side + right_side) / denominator
-  )
-} 
-
-# Get Score Interval calculations for each n and p
-expected_score_ci <- data.frame()
-temp5 <- data.frame()
-for (i in n) {
-  for (j in p) {
-    temp5 <- data.frame(n = i,
-                        p = j, 
-                        lower_ci = scoreCI(p = j, n = i)[[1]],
-                        upper_ci = scoreCI(p = j, n = i)[[2]]
-                        )
-    expected_score_ci <- rbind(expected_score_ci, temp5)
-  }
-} # Note that expected_score_ci now has all the n, p, lower_ci, and upper_ci values
+expected_score_ci <- df %>%
+  mutate(
+    alpha = 0.05,
+    z = qnorm(1 - (alpha / 2)), # z-score value
+    left_side = p_hat + (z ** 2 / (2 * n)), # Estimate value before subtracting or adding
+    right_side = z * sqrt(((p_hat * (1 - p_hat)) + (z ** 2 / (4 * n))) / n), # Everything in sqrt to add or subtract to original estimate
+    denominator = 1 + (z ** 2 / n), # Divided by this value
+    lower_ci = ifelse((left_side - right_side) / denominator < 0, 
+                      0, 
+                      (left_side - right_side) / denominator
+                      ),
+    upper_ci = ifelse((left_side + right_side) / denominator > 1,
+                      1,
+                      (left_side + right_side) / denominator
+                      )
+  ) %>%
+  dplyr::select(-c(alpha, z, left_side, right_side, denominator)) # Remove what is not needed
 
 # Merge our data with df and expected_score_ci to get all the information together
-df_score <- mergeDF(expected_score_ci)
+df_score <- updateDF(expected_score_ci)
 
 # Make table that stores the values of proportion of contained in interval
 df_score_proportion <- final_summary(df_score)
