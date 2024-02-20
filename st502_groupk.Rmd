@@ -208,6 +208,7 @@ df_score_proportion <- final_summary(df_score)
 ```{r}
 Raw_CI <- function(df, B = 200, alpha = 0.05) {
   raw <- apply(df, MARGIN = 1, FUN = function(combo) {
+    set.seed(999)
     n <- combo['n']
     p <- combo['p']
     y_i <- combo['y_i']
@@ -234,10 +235,44 @@ df_raw <- updateDF(raw)
 
 ```
 
-
 ```{r}
-df_wald_proportion
+Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {
+  boot_t <- apply(df, MARGIN = 1, FUN = function(combo) {
+    set.seed(999)
+    n <- combo['n']
+    p <- combo['p']
+    y_i <- combo['y_i']
+    p_hat <- combo['p_hat']
+    y_boot <- rbinom(B, size = n, prob = p_hat)
+    p_hat_boot <- y_boot / n
+    p_hat_boot <- p_hat_boot[((p_hat_boot != 0) & (p_hat_boot != 1))]
+    t_star <- (p_hat_boot - p_hat) / sqrt((p_hat_boot*(1-p_hat_boot))/n)
+    quantiles <- quantile(t_star, c(alpha/2, 1-(alpha/2)))
+    names(quantiles) <- c('lower_q', 'upper_q')
+    lower_ci <- ifelse(y_i == 0, 0, 
+                       ifelse(y_i == 1, 1,
+                              p_hat - quantiles['upper_q']*sd(p_hat_boot)))
+    upper_ci <- ifelse(y_i == 0, 0, 
+                       ifelse(y_i == 1, 1,
+                              p_hat - quantiles['lower_q']*sd(p_hat_boot)))
+    return(c(n, p, y_i, p_hat, lower_ci, upper_ci))
+    })
+  df <- data.frame(n = boot_t[1,],
+             p = boot_t[2,],
+             y_i = boot_t[3,],
+             p_hat = boot_t[4,],
+             lower_ci = boot_t[5,],
+             upper_ci = boot_t[6,])
+  }
+
+bootstrap_t <- Bootstrap_t_CI(df[5000:10000,])
+
+df_bootstrap_t <- updateDF(bootstrap_t)
+
+(df_bootstrap_t_proportion <- final_summary(df_bootstrap_t))
 ```
+
+
 
 
 
