@@ -45,6 +45,7 @@ library(tidyverse)
 set.seed(999) # Allows us to reproduce results
 p <- seq(from = .01, to = .99, length.out = 30) # Get values for p as combinations
 n <- c(15, 100, 200) # Get values of n
+combo <- expand.grid(p,n)
 N <- 1500 # Set N to be the number of samples we want for each grouping
 
 df <- data.frame()
@@ -200,3 +201,58 @@ df_score <- updateDF(expected_score_ci)
 # Make table that stores the values of proportion of contained in interval
 df_score_proportion <- final_summary(df_score)
 ```
+
+
+## Raw Percentile Interval
+
+```{r}
+N_ <- 100
+B <- 50
+
+raw <- apply(combo, MARGIN = 1, FUN = function(param) {
+  names(param) <- c('p','n')
+  n <-  param['n']
+  p <- param['p']
+  boot_estimates <- replicate(B, {
+    Y <- rbinom(N_, size = n, prob = p)
+    p_hat_boot <- Y / n
+    CI <- quantile(p_hat_boot, c(0.025, 0.975))
+    names(CI) <- c('lower_ci', 'upper_ci')
+    return(c(p = p, n = n, CI))
+    })
+  df <- data.frame(p = boot_estimates[1,],
+           n = boot_estimates[2,],
+           lower_ci = boot_estimates[3,],
+           upper_ci = boot_estimates[4,])
+  return(df)
+})
+
+raw <- bind_rows(raw)
+
+df_raw <- updateDF(raw)
+
+(df_raw_proportion <- final_summary(df_raw))
+
+```
+
+
+```{r}
+df_wald_proportion
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
