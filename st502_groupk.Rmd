@@ -203,7 +203,7 @@ df_score_proportion <- final_summary(df_score)
 ```
 
 
-## Raw Percentile Interval
+## Raw Percentile Interval using a Parametric Bootstrap
 
 ```{r}
 Raw_CI <- function(df, B = 200, alpha = 0.05) {
@@ -231,9 +231,11 @@ raw <- Raw_CI(df)
 
 df_raw <- updateDF(raw)
 
-(df_raw_proportion <- final_summary(df_raw))
+df_raw_proportion <- final_summary(df_raw)
 
 ```
+
+## Bootstrap t Interval using a Parametric Bootstrap
 
 ```{r}
 Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {
@@ -273,6 +275,39 @@ df_bootstrap_t <- updateDF(bootstrap_t)
 ```
 
 
+```{r}
+results <- list("Wald" = df_wald_proportion, "Adjusted Wald" = df_adj_wald_proportion, 
+                "Exact" = df_exact_proportion, "Score" = df_score_proportion, 
+                "Raw Percentile Bootstrap" = df_raw_proportion, "Bootstrap t" = df_bootstrap_t_proportion)
+
+for (i in 1:6) {
+  df <- results[[i]]
+  n_ <- 15
+  df <- df %>% 
+    filter(n == n_)
+  plot(df$p, df$prop, col = i, type = "l", lwd = 2,
+       ylim = c(0,1), xlim = c(0,1),
+       ylab = "Proportion",
+       xlab = "p",
+       main = paste("Proportion containing with n =",n_,names(results)[i]))
+  abline(h = 0.95,lwd = 1.5)
+}
+```
+
+```{r}
+for (n_ in n) {
+  plot(NA, ylim = c(0,0.6), xlim = c(0,1), 
+     ylab = "Average Length", xlab = "p", main = paste("Average length with n =",n_))
+  for (i in 1:6) {
+    df <- results[[i]]
+    df <- df %>% 
+      filter(n == n_)
+    lines(df$p, df$int_length, col = i, lwd = 2, add = TRUE)
+  }
+  legend(0.87, 0.62, legend = c("Wald","AdjWald","Exact","Score","Raw","Boott"), lty = 1, lwd = 2, col = 1:6, cex = 0.7)
+}
+
+```
 
 
 
