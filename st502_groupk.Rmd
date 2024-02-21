@@ -137,7 +137,7 @@ expected_adj_wald_ci <- df %>%
   ) %>%
   dplyr::select(- c(alpha, p_hat2))
 
-# Merge our data with df and expected_adj_wald_ci to get all the information together
+# Update our data with df and expected_adj_wald_ci to get all the information together
 df_adj_wald <- updateDF(expected_adj_wald_ci)
 
 # Make table that stores the values of proportion of contained in interval
@@ -153,19 +153,43 @@ expected_exact_ci <- df %>%
   mutate(
     alpha = 0.05,
     lower_ci = ifelse(
-      ((y_i == 0) | ((1 + ((n - y_i + 1) / (y_i * qf(1 - (alpha / 2), 2 * y_i, 2 * (n - y_i + 1), lower.tail = F)))) ** (-1) < 0)),
-      0,
-      (1 + ((n - y_i + 1) / (y_i * qf(1 - (alpha / 2), 2 * y_i, 2 * (n - y_i + 1), lower.tail = F)))) ** (-1)
+      y_i == 0, # If y_i is 0 then lower bound is 0
+      0, 
+      ifelse(
+        y_i == n, # If y_i is n then lower bound is 1
+        1, 
+        ifelse(
+          (1 + ((n - y_i + 1) / (y_i * qf(1 - (alpha / 2), 2 * y_i, 2 * (n - y_i + 1), lower.tail = F)))) ** (-1) < 0, # If expression is less than 0 then lower bound is 0
+          0, 
+          ifelse(
+            (1 + ((n - y_i + 1) / (y_i * qf(1 - (alpha / 2), 2 * y_i, 2 * (n - y_i + 1), lower.tail = F)))) ** (-1) > 1, # If function is greater than 1 then lower bound is 1
+            1, 
+            (1 + ((n - y_i + 1) / (y_i * qf(1 - (alpha / 2), 2 * y_i, 2 * (n - y_i + 1), lower.tail = F)))) ** (-1) # Otherwise get bound
+          )
+        )
+      )
     ),
-    upper_ci = ifelse(
-      ((y_i == n) | ((1 + ((n - y_i) / ((y_i + 1) * qf(alpha / 2, 2 * (y_i + 1), 2 * (n - y_i), lower.tail = F)))) ** (-1) > 1)),
-      1,
-      (1 + ((n - y_i) / ((y_i + 1) * qf(alpha / 2, 2 * (y_i + 1), 2 * (n - y_i), lower.tail = F)))) ** (-1)
+    upper_ci = ifelse( # Note the criteria for ifelse is same as lower bound but now for upper bound
+      y_i == 0, 
+      0, 
+      ifelse(
+        y_i == n, 
+        1, 
+        ifelse(
+          (1 + ((n - y_i) / ((y_i + 1) * qf(alpha / 2, 2 * (y_i + 1), 2 * (n - y_i), lower.tail = F)))) ** (-1) < 0, 
+          0, 
+          ifelse(
+            (1 + ((n - y_i) / ((y_i + 1) * qf(alpha / 2, 2 * (y_i + 1), 2 * (n - y_i), lower.tail = F)))) ** (-1) > 1, 
+            1, 
+            (1 + ((n - y_i) / ((y_i + 1) * qf(alpha / 2, 2 * (y_i + 1), 2 * (n - y_i), lower.tail = F)))) ** (-1)
+          )
+        )
+      )
     )
   ) %>%
   dplyr::select(-alpha)
 
-# Merge our data with df and expected_exact_ci to get all the information together
+# Update our data with df and expected_exact_ci to get all the information together
 df_exact <- updateDF(expected_exact_ci)
 
 # Make table that stores the values of proportion of contained in interval
@@ -195,7 +219,7 @@ expected_score_ci <- df %>%
   ) %>%
   dplyr::select(-c(alpha, z, left_side, right_side, denominator)) # Remove what is not needed
 
-# Merge our data with df and expected_score_ci to get all the information together
+# Update our data with df and expected_score_ci to get all the information together
 df_score <- updateDF(expected_score_ci)
 
 # Make table that stores the values of proportion of contained in interval
@@ -248,6 +272,8 @@ df_raw_proportion <- final_summary(df_raw)
 
 Here we took a look at using the Bootstrap t Confidence Interval using a Parametric Bootstrap.
 ```{r}
+# Make copy of data to do bootstrap on
+df2 <- df
 #create confidence interval function that takes in a data frame of n,p combinations and their observed y_i and p_hat
 Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bootstrap resamples and alpha
   boot_t <- apply(df, MARGIN = 1, FUN = function(combo) {#create CI for every row in the data frame
@@ -289,7 +315,8 @@ Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bo
              upper_ci = boot_t[6,])
   }
 #use new function to find CI for each row of df based on bootstrap t
-bootstrap_t <- Bootstrap_t_CI(df[5000:10000,])
+bootstrap_t <- Bootstrap_t_CI(df2) %>%
+  filter((! is.na(lower_ci)) & (! is.na(upper_ci))) # Remove NA values from upper and lower bounds to get intervals
 #use updateDF function that calculates relevant count metrics
 df_bootstrap_t <- updateDF(bootstrap_t)
 #use final_summary function to group by n,p combinations and get relevant performance metrics
