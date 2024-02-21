@@ -272,8 +272,6 @@ df_raw_proportion <- final_summary(df_raw)
 
 Here we took a look at using the Bootstrap t Confidence Interval using a Parametric Bootstrap.
 ```{r}
-# Make copy of data to do bootstrap on
-df2 <- df
 #create confidence interval function that takes in a data frame of n,p combinations and their observed y_i and p_hat
 Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bootstrap resamples and alpha
   boot_t <- apply(df, MARGIN = 1, FUN = function(combo) {#create CI for every row in the data frame
@@ -298,10 +296,10 @@ Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bo
     names(quantiles) <- c('lower_q', 'upper_q')
     #create appropriate lower and upper CI based on if observed binomial sample from df is either 0, 1, or neither
     lower_ci <- ifelse(y_i == 0, 0, 
-                       ifelse(y_i == 1, 1,
+                       ifelse(y_i == n, 1,
                               p_hat - quantiles['upper_q']*sd(p_hat_boot)))
     upper_ci <- ifelse(y_i == 0, 0, 
-                       ifelse(y_i == 1, 1,
+                       ifelse(y_i == n, 1,
                               p_hat - quantiles['lower_q']*sd(p_hat_boot)))
     #return values needed for similar format to df provided in function call
     return(c(n, p, y_i, p_hat, lower_ci, upper_ci))
@@ -315,8 +313,8 @@ Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bo
              upper_ci = boot_t[6,])
   }
 #use new function to find CI for each row of df based on bootstrap t
-bootstrap_t <- Bootstrap_t_CI(df2) %>%
-  filter((! is.na(lower_ci)) & (! is.na(upper_ci))) # Remove NA values from upper and lower bounds to get intervals
+bootstrap_t <- Bootstrap_t_CI(df)
+#%>%filter((! is.na(lower_ci)) & (! is.na(upper_ci))) # Remove NA values from upper and lower bounds to get intervals
 #use updateDF function that calculates relevant count metrics
 df_bootstrap_t <- updateDF(bootstrap_t)
 #use final_summary function to group by n,p combinations and get relevant performance metrics
