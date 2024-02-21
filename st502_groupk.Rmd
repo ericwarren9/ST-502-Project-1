@@ -341,9 +341,9 @@ for (i in 1:6) {
   plot(df$p, df$prop, col = i, type = "l", lwd = 2,
        ylim = c(0,1), xlim = c(0,1),
        #add appropriate labels
-       ylab = "Proportion",
+       ylab = "of Confidence Intervals Containing p",
        xlab = "p",
-       main = paste("Proportion containing with n =", n_, names(results)[i]))
+       main = paste("Proportion of Confidence Intervals Containing p with n =", n_, names(results)[i]))
   #add line for nominal confidence level
   abline(h = 0.95,lwd = 1.5)
 }
@@ -363,9 +363,9 @@ for (i in 1:6) {
   plot(df$p, df$prop, col = i, type = "l", lwd = 2,
        ylim = c(0,1), xlim = c(0,1),
        #add appropriate labels
-       ylab = "Proportion",
+       ylab = "Proportion of Confidence Intervals Containing p",
        xlab = "p",
-       main = paste("Proportion containing with n =", n_, names(results)[i]))
+       main = paste("Proportion of Confidence Intervals Containing p with n =", n_, names(results)[i]))
   #add line for nominal confidence level
   abline(h = 0.95,lwd = 1.5)
 }
@@ -385,9 +385,9 @@ for (i in 1:6) {
   plot(df$p, df$prop, col = i, type = "l", lwd = 2,
        ylim = c(0,1), xlim = c(0,1),
        #add appropriate labels
-       ylab = "Proportion",
+       ylab = "Proportion of Confidence Intervals Containing p",
        xlab = "p",
-       main = paste("Proportion containing with n =", n_, names(results)[i]))
+       main = paste("Proportion of Confidence Intervals Containing p with n =", n_, names(results)[i]))
   #add line for nominal confidence level
   abline(h = 0.95,lwd = 1.5)
 }
@@ -417,20 +417,3 @@ for (n_ in n) {
 }
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
