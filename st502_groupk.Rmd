@@ -401,7 +401,7 @@ for (i in 1:6) {
 #loop through each sample size to create plot for each
 for (n_ in n) {
   #create empty plot where lines of each avg CI length from each method can be added
-  plot(NA, ylim = c(0,0.6), xlim = c(0,1), 
+  plot(NA, ylim = c(0,0.7), xlim = c(0,1), 
        #add appropriate labels
        ylab = "Average Length", xlab = "p", main = paste("Average length with n =",n_))
   #loop through number of data frames in results
@@ -415,9 +415,15 @@ for (n_ in n) {
     lines(df$p, df$int_length, col = i, lwd = 2, add = TRUE)
   }
   #add legend that specifies each method
-  legend(0.87, 0.62, legend = c("Wald","AdjWald","Exact","Score","Raw","Boott"), lty = 1, lwd = 2, col = 1:6, cex = 0.7)
+  legend(0.77, 
+         0.73, 
+         legend = c("Wald","AdjWald","Exact","Score","Raw","Boott"), 
+         lty = 1, 
+         lwd = 2, 
+         col = 1:6, 
+         cex = 0.7
+         )
 }
-
 ```
 
 # Conclusions
