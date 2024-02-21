@@ -26,13 +26,15 @@ rmarkdown::render("~/ST-502-Project-1/st502_groupk.Rmd",
               )
 ```
 
-# Background of Project
+# Goals of Project
 
 In this project, we are going to try to understand what good properties of confidence are. The main things we are going to consider are:
 
 - Proportion of intervals that capture the true value (hopefully $1 - \alpha$)
 - Proportion of intervals that miss above and proportion that miss below
 - The average length of the interval
+
+# Methods of Project
 
 # Creation of Data
 
@@ -76,8 +78,6 @@ tail(df)
 ```
 
 Please note for this data that it is in *long format* which means that each combination of $n$, $p$, and $y_i$ is shown as one row. So for example, if we want to find all the randomly generated data for the combination of $n = 15$ and $p = 0.01$, we would want to find the `r N` rows that show its corresponding $y_i$ values.
-
-# Results
 
 ## Wald Confidence Intervals
 
@@ -321,7 +321,9 @@ df_bootstrap_t <- updateDF(bootstrap_t)
 df_bootstrap_t_proportion <- final_summary(df_bootstrap_t)
 ```
 
-## Coverage Results
+# Calculating Qunatities
+
+# Results
 
 Sample size = 15
 ```{r}
@@ -417,3 +419,5 @@ for (n_ in n) {
 }
 
 ```
+
+# Conclusions
