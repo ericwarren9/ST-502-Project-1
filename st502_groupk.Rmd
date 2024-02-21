@@ -294,7 +294,7 @@ Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bo
     quantiles <- quantile(t_star, c(alpha/2, 1-(alpha/2)))
     #give appropriate names
     names(quantiles) <- c('lower_q', 'upper_q')
-    #create appropriate lower and upper CI based on if observed binomial sample from df is either 0, 1, or neither
+    #create appropriate lower and upper CI based on if observed binomial sample from df is either 0, n, or neither
     lower_ci <- ifelse(y_i == 0, 0, 
                        ifelse(y_i == n, 1,
                               p_hat - quantiles['upper_q']*sd(p_hat_boot)))
