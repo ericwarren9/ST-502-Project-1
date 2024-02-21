@@ -205,20 +205,30 @@ df_score_proportion <- final_summary(df_score)
 
 ## Raw Percentile Interval using a Parametric Bootstrap
 
+Here we took a look at using the Raw Percentile Confidence Interval using a Parametric Bootstrap.
 ```{r}
-Raw_CI <- function(df, B = 200, alpha = 0.05) {
-  raw <- apply(df, MARGIN = 1, FUN = function(combo) {
+#create confidence interval function that takes in a data frame of n,p combinations and their observed y_i and p_hat
+Raw_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bootstrap resamples and alpha
+  raw <- apply(df, MARGIN = 1, FUN = function(combo) {#create CI for every row in the data frame
+    #set seed for reproducibility
     set.seed(999)
+    #store current parameter values and sample values
     n <- combo['n']
     p <- combo['p']
     y_i <- combo['y_i']
     p_hat <- combo['p_hat']
+    #create B bootstrap resamples using estimate of p
     y_boot <- rbinom(B, size = n, prob = p_hat)
+    #calculate p_hat for each bootstrap resample
     p_hat_boot <- y_boot / n
+    #create CI based on quantiles of bootstrap resamples of p_hat
     CI <- quantile(p_hat_boot, c(alpha/2, 1-(alpha/2)))
+    #change names of lower and upper CI
     names(CI) <- c('lower_ci', 'upper_ci')
+    #return values needed for similar format to df provided in function call
     return(c(n, p, y_i, p_hat, CI))
     })
+  #create a data frame that is in same format as df provided in function call
   df <- data.frame(n = raw[1,],
            p = raw[2,],
            y_i = raw[3,],
@@ -226,39 +236,51 @@ Raw_CI <- function(df, B = 200, alpha = 0.05) {
            lower_ci = raw[5,],
            upper_ci = raw[6,])
 }
-
+#use new function to find CI for each row of df based on raw percentile
 raw <- Raw_CI(df)
-
+#use updateDF function that calculates relevant count metrics
 df_raw <- updateDF(raw)
-
+#use final_summary function to group by n,p combinations and get relevant performance metrics
 df_raw_proportion <- final_summary(df_raw)
-
 ```
 
 ## Bootstrap t Interval using a Parametric Bootstrap
 
+Here we took a look at using the Bootstrap t Confidence Interval using a Parametric Bootstrap.
 ```{r}
-Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {
-  boot_t <- apply(df, MARGIN = 1, FUN = function(combo) {
+#create confidence interval function that takes in a data frame of n,p combinations and their observed y_i and p_hat
+Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bootstrap resamples and alpha
+  boot_t <- apply(df, MARGIN = 1, FUN = function(combo) {#create CI for every row in the data frame
+    #set seed for reproducibility
     set.seed(999)
+    #store current parameter values and sample values
     n <- combo['n']
     p <- combo['p']
     y_i <- combo['y_i']
     p_hat <- combo['p_hat']
+    #create B bootstrap resamples using estimate of p
     y_boot <- rbinom(B, size = n, prob = p_hat)
+    #calculate p_hat for each bootstrap resample
     p_hat_boot <- y_boot / n
+    #throw out bootstrap resamples that give proportion either 0 of 1
     p_hat_boot <- p_hat_boot[((p_hat_boot != 0) & (p_hat_boot != 1))]
+    #calculate t-statistic for each bootstrap resample
     t_star <- (p_hat_boot - p_hat) / sqrt((p_hat_boot*(1-p_hat_boot))/n)
+    #find quantiles of approximate distribution of the t-statistic
     quantiles <- quantile(t_star, c(alpha/2, 1-(alpha/2)))
+    #give appropriate names
     names(quantiles) <- c('lower_q', 'upper_q')
+    #create appropriate lower and upper CI based on if observed binomial sample from df is either 0, 1, or neither
     lower_ci <- ifelse(y_i == 0, 0, 
                        ifelse(y_i == 1, 1,
                               p_hat - quantiles['upper_q']*sd(p_hat_boot)))
     upper_ci <- ifelse(y_i == 0, 0, 
                        ifelse(y_i == 1, 1,
                               p_hat - quantiles['lower_q']*sd(p_hat_boot)))
+    #return values needed for similar format to df provided in function call
     return(c(n, p, y_i, p_hat, lower_ci, upper_ci))
     })
+  #create a data frame that is in same format as df provided in function call
   df <- data.frame(n = boot_t[1,],
              p = boot_t[2,],
              y_i = boot_t[3,],
@@ -266,12 +288,12 @@ Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {
              lower_ci = boot_t[5,],
              upper_ci = boot_t[6,])
   }
-
+#use new function to find CI for each row of df based on bootstrap t
 bootstrap_t <- Bootstrap_t_CI(df[5000:10000,])
-
+#use updateDF function that calculates relevant count metrics
 df_bootstrap_t <- updateDF(bootstrap_t)
-
-(df_bootstrap_t_proportion <- final_summary(df_bootstrap_t))
+#use final_summary function to group by n,p combinations and get relevant performance metrics
+df_bootstrap_t_proportion <- final_summary(df_bootstrap_t)
 ```
 
 
@@ -293,6 +315,38 @@ for (i in 1:6) {
   abline(h = 0.95,lwd = 1.5)
 }
 ```
+
+```{r}
+for (i in 1:6) {
+  df <- results[[i]]
+  n_ <- 100
+  df <- df %>% 
+    filter(n == n_)
+  plot(df$p, df$prop, col = i, type = "l", lwd = 2,
+       ylim = c(0,1), xlim = c(0,1),
+       ylab = "Proportion",
+       xlab = "p",
+       main = paste("Proportion containing with n =",n_,names(results)[i]))
+  abline(h = 0.95,lwd = 1.5)
+}
+```
+
+
+```{r}
+for (i in 1:6) {
+  df <- results[[i]]
+  n_ <- 200
+  df <- df %>% 
+    filter(n == n_)
+  plot(df$p, df$prop, col = i, type = "l", lwd = 2,
+       ylim = c(0,1), xlim = c(0,1),
+       ylab = "Proportion",
+       xlab = "p",
+       main = paste("Proportion containing with n =",n_,names(results)[i]))
+  abline(h = 0.95,lwd = 1.5)
+}
+```
+
 
 ```{r}
 for (n_ in n) {
