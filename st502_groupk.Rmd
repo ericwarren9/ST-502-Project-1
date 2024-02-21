@@ -28,13 +28,11 @@ rmarkdown::render("~/ST-502-Project-1/st502_groupk.Rmd",
 
 # Goals of Project
 
-In this project, we are going to try to understand what good properties of confidence are. The main things we are going to consider are:
-
-- Proportion of intervals that capture the true value (hopefully $1 - \alpha$)
-- Proportion of intervals that miss above and proportion that miss below
-- The average length of the interval
+In this report, it is our goal to review the performance of confidence intervals through six different methods. These methods will be further explained below; however, we will be assessing their performance for different combinations of success probabilities and sample sizes. In each combination, we will assess the following: proportion of intervals that contain the true value of the parameter, proportion of intervals that are below/above the true value, as well as the average length of the intervals. After completing the goals above, it is our intention to select the “best” interval method. This will be determined by an amalgamation of the listed goals, not the best method for each goal. We will further determine if there are methods, other than our chosen “best”, that can also be considered useful. 
 
 # Methods of Project
+
+We are exploring six different types of interval estimation techniques that we can use to create our own 95% confidence intervals based on simulation of data. The intervals we are evaluating are the Wald Interval ($\hat{p} \pm z_{\frac{\alpha}{2}} \sqrt{\frac{\hat{p} (1 - \hat{p})}{n}}$), Adjusted Wald Interval (says $\hat{p} = \frac{y_i + 2}{n + 4}$ and using the same interval formula as the **Wald Interval**), Clopper-Pearson (Exact) Interval (lower bound is $(1 + \frac{n - y_i + 1}{y_i F_{2 y_i, 2(n - y_i + 1), 1 - \frac{\alpha}{2}}})^{-1}$ and upper bound is $(1 + \frac{n - y_i}{(y_i + 1) F_{2 (y_i + 1), 2(n - y_i), \frac{\alpha}{2}}})^{-1}$ where $F_{a, b, c}$ denotes the $1 - c$ quantile from the F-distribution with degrees of freedom $a$ and $b$), Score Interval ($\frac{\hat{p} + \frac{z_{\alpha/2}^2}{2n} \pm z_{\alpha/2} \sqrt{\frac{\frac{\hat{p} (1 - \hat{p}) + z_{\alpha/2}^2}{4n}}{n}}}{1 + \frac{z_{\alpha/2}^2}{n}}$), using a Raw percentile interval using a parametric bootstrap, and using a Bootstrap t interval using a parametric bootstrap. As what will be described more in depth in the Creation of Data section of our report, we will have 1500 independent samples for each combination of p (our true proportion from our population) and n (the sample size we take to “estimate” our proportion, pretending we do not know what the true value is). We will then explore the six different interval techniques and compare the proportion of our simulated data intervals that capture our “true” proportion ($p$). 
 
 # Creation of Data
 
