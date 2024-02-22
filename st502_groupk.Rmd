@@ -36,9 +36,9 @@ We are exploring six different types of interval estimation techniques that we c
 
 # Creation of Data
 
-We are going to do this by comparing the performance of these intervals we are making for inference for various values of $p$ and $n$. To start of with we will want to generate some data for these different combinations of $p$ and $n$. The data has been generated which we will show briefly what it looks like.
+To create the data needed to complete the goals of this report, we will first start by correctly identifying the sequences of success probabilities (the true value of $p$) and sample sizes ($n$). After successfully establishing these sequences, we can then establish a loop that will parse through all combinations of the two sequences. Furthermore, for each combination, we will establish a data frame with three total variables (sample size, success probability, $y_i$). The $y_i$ column will be established using an R function (`rbinom()`) that randomly samples from a binomial distribution that takes the sample size and success probability variables as parameters. After successfully creating the data for that specific parameter combination, we will then do the same for all combinations and row bind all into one single data set that contains all observations from each combination of sample size and success probability. Lastly, to help with calculations later, we will create a column for the $\hat{p_i}$ estimates which can be calculated from the formula $\hat{p_i} = \frac{Y_i}{n}$. After generating this data, we will show briefly what it looks like to get a better understanding of our structure.
 ```{r generate data}
-# install.packages("tidyverse")
+# install.packages(c("tidyverse", "knitr", "kableExtra")) # Uncomment if you do not have libraries
 library(tidyverse)
 
 # Initialize data
@@ -66,20 +66,22 @@ for (i in n) {
 #   group_by(n, p) %>%
 #   summarize(count = n())
 
-# Show the first observations and save as a tibble
+# Create the p_hat variable
 df <- df %>%
   mutate(p_hat = y_i / n)
-head(df)
-
-# Now show last observations
-tail(df)
 ```
 
-Please note for this data that it is in *long format* which means that each combination of $n$, $p$, and $y_i$ is shown as one row. So for example, if we want to find all the randomly generated data for the combination of $n = 15$ and $p = 0.01$, we would want to find the `r N` rows that show its corresponding $y_i$ values.
+```{r data shown, fig.align='center'}
+# Have data in same row
+par(mfrow = c(1, 2))
+# Show the first and last observations 
+knitr::kable(cbind(head(df), tail(df)), "latex") %>%
+  kableExtra::kable_styling(position = "center",
+                            latex_options = "HOLD_position")
+```
 
-## Wald Confidence Intervals
+Please note for this data that it is in *long format* which means that each combination of $n$, $p$, $y_i$, $\hat{p_i}$ is shown as one row. So for example, if we want to find all the randomly generated data for the combination of $n = 15$ and $p = 0.01$, we would want to find the `r N` rows that show its corresponding $y_i$ / $\hat{p_i}$ values.
 
-Here we took a look at using the Wald Confidence Interval.
 ```{r wald ci}
 # Get Wald Interval calculations for each n and p
 expected_wald_ci <- df %>%
@@ -117,9 +119,6 @@ df_wald <- updateDF(df = expected_wald_ci)
 df_wald_proportion <- final_summary(df_wald)
 ```
 
-## Adjusted Wald Interval
-
-Here we took a look at using the Adjusted Wald Confidence Interval.
 ```{r adj wald ci}
 # Function for Adj Wald Interval
 expected_adj_wald_ci <- df %>%
@@ -142,9 +141,6 @@ df_adj_wald <- updateDF(expected_adj_wald_ci)
 df_adj_wald_proportion <- final_summary(df_adj_wald)
 ```
 
-## Clopper-Pearson (Exact) Interval
-
-Here we took a look at using the Clopper-Pearson (Exact) Confidence Interval.
 ```{r exact ci}
 # Get Exact Interval calculations for each n and p
 expected_exact_ci <- df %>%
@@ -194,9 +190,6 @@ df_exact <- updateDF(expected_exact_ci)
 df_exact_proportion <- final_summary(df_exact)
 ```
 
-## Score Interval
-
-Here we took a look at using the Score Confidence Interval.
 ```{r score ci}
 # Function for Score Interval
 expected_score_ci <- df %>%
@@ -224,11 +217,7 @@ df_score <- updateDF(expected_score_ci)
 df_score_proportion <- final_summary(df_score)
 ```
 
-
-## Raw Percentile Interval using a Parametric Bootstrap
-
-Here we took a look at using the Raw Percentile Confidence Interval using a Parametric Bootstrap.
-```{r}
+```{r bootstrap raw}
 #create confidence interval function that takes in a data frame of n,p combinations and their observed y_i and p_hat
 Raw_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bootstrap resamples and alpha
   raw <- apply(df, MARGIN = 1, FUN = function(combo) {#create CI for every row in the data frame
@@ -266,10 +255,7 @@ df_raw <- updateDF(raw)
 df_raw_proportion <- final_summary(df_raw)
 ```
 
-## Bootstrap t Interval using a Parametric Bootstrap
-
-Here we took a look at using the Bootstrap t Confidence Interval using a Parametric Bootstrap.
-```{r}
+```{r bootstrap t}
 #create confidence interval function that takes in a data frame of n,p combinations and their observed y_i and p_hat
 Bootstrap_t_CI <- function(df, B = 200, alpha = 0.05) {#create defaults for # bootstrap resamples and alpha
   boot_t <- apply(df, MARGIN = 1, FUN = function(combo) {#create CI for every row in the data frame
@@ -321,14 +307,19 @@ df_bootstrap_t_proportion <- final_summary(df_bootstrap_t)
 
 # Calculating Qunatities
 
+After creating our data, we are now going to use each interval method (mentioned in the *Methods* section) and use their respective 95% confidence interval formulas; this is setting $\alpha = 0.05$ when calculating the intervals for our $\hat{p}$ we generated for each independent sample. Afterwards, we will check to see if the interval created contains the true $p$ proportion parameter in it. If it does, which means the lower bound of the interval created from our $\hat{p}$ statistic is less than the true $p$ proportion parameter and the upper bound of the interval created from our $\hat{p}$ statistic is greater than the true $p$ proportion parameter then we would create a new indicator variable called `count` which would be 1 if this statement is true and 0 if false (meaning our calculated lower bound was greater than or equal to $p$ **or** our upper bound was less than or equal to $p$. Finally to get our proportion of intervals for each combination of $n$ (our sample size) and $p$ (our actual true proportion parameter) we would find the percentage of intervals that contain our true value of $p$ by finding the average of the `count` indicator variable. These quantities calculated from our simulation will be helpful in making recommendations of which intervals are the best to use.
+
 # Results
 
-Sample size = 15
-```{r}
+## Proportion of Intervals Capturing Parameter for Each Sample Size
+
+```{r n is 15 graphs}
 #create list of all data frames from different confidence interval procedures
 results <- list("Wald" = df_wald_proportion, "Adjusted Wald" = df_adj_wald_proportion, 
                 "Exact" = df_exact_proportion, "Score" = df_score_proportion, 
-                "Raw Percentile Bootstrap" = df_raw_proportion, "Bootstrap t" = df_bootstrap_t_proportion)
+                "Raw Bootstrap" = df_raw_proportion, "Bootstrap t" = df_bootstrap_t_proportion)
+# Make the plots in a 2 rows by 3 columns output
+par(mfrow = c(2, 3))
 #loop through number of data frames in results
 for (i in 1:6) {
   #store appropriate data frame
@@ -341,16 +332,24 @@ for (i in 1:6) {
   plot(df$p, df$prop, col = i, type = "l", lwd = 2,
        ylim = c(0,1), xlim = c(0,1),
        #add appropriate labels
-       ylab = "of Confidence Intervals Containing p",
+       ylab = "Proportion Containing p",
        xlab = "p",
-       main = paste("Proportion of Confidence Intervals Containing p with n =", n_, names(results)[i]))
+       main = paste("Proportion Containing p \n with n =", 
+                    n_, 
+                    "for \n",
+                    names(results)[i],
+                    "Interval")
+       )
   #add line for nominal confidence level
   abline(h = 0.95,lwd = 1.5)
 }
 ```
 
-Sample size = 100
-```{r}
+As we can see for our lower sample size of $n = 15$, the Adjusted Wald seems to be performing the best of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$. The Score interval also seems to do a good job as well (minus the extremes) and the Exact interval also seems to do fairly well (with the "extreme" range is a little wider than the Score interval). The other interval methods do a poor job of correctly classifying our desired proportion of correct confidence intervals.
+
+```{r n is 100 graphs}
+# Make the plots in a 2 rows by 3 columns output
+par(mfrow = c(2, 3))
 #loop through number of data frames in results
 for (i in 1:6) {
   #store appropriate data frame
@@ -363,16 +362,24 @@ for (i in 1:6) {
   plot(df$p, df$prop, col = i, type = "l", lwd = 2,
        ylim = c(0,1), xlim = c(0,1),
        #add appropriate labels
-       ylab = "Proportion of Confidence Intervals Containing p",
+       ylab = "Proportion Containing p",
        xlab = "p",
-       main = paste("Proportion of Confidence Intervals Containing p with n =", n_, names(results)[i]))
+       main = paste("Proportion Containing p \n with n =", 
+                    n_, 
+                    "for \n",
+                    names(results)[i],
+                    "Interval")
+       )
   #add line for nominal confidence level
   abline(h = 0.95,lwd = 1.5)
 }
 ```
 
-Sample size = 200
-```{r}
+As we can see for our medium sample size of $n = 100$, the Adjusted Wald again seems to be performing the best of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$ with the Score interval closely behind (minus the extremes being slightly below par). The other four intervals seem to do fairly well (with the "extreme" range is a little wider than the Score interval) but from these plots alone it is hard to say that one of those four are much "better" than the others.
+
+```{r n is 200 graphs}
+# Make the plots in a 2 rows by 3 columns output
+par(mfrow = c(2, 3))
 #loop through number of data frames in results
 for (i in 1:6) {
   #store appropriate data frame
@@ -385,21 +392,30 @@ for (i in 1:6) {
   plot(df$p, df$prop, col = i, type = "l", lwd = 2,
        ylim = c(0,1), xlim = c(0,1),
        #add appropriate labels
-       ylab = "Proportion of Confidence Intervals Containing p",
+       ylab = "Proportion Containing p",
        xlab = "p",
-       main = paste("Proportion of Confidence Intervals Containing p with n =", n_, names(results)[i]))
+       main = paste("Proportion Containing p \n with n =", 
+                    n_, 
+                    "for \n",
+                    names(results)[i],
+                    "Interval")
+       )
   #add line for nominal confidence level
   abline(h = 0.95,lwd = 1.5)
 }
 ```
 
-## Average Confidence Interval Length Results for each sample size
+As we can see for our large sample size of $n = 200$, the Adjusted Wald and Score intervals both seem to be performing the better than its "competitor" interval methods of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$ with the Score interval closely behind. The Exact and Wald intervals are close behind with just the extreme $p$ (true proportion values) having some slight faults. The other two bootstrap intervals seem to do fairly alright (with the "extreme" range is a little wider than the other intervals) and seem to be a little more inconsistent as getting to our ideal confidence level (which we set at 95%).
 
-```{r}
+## Average Confidence Interval Length Results for Each Sample Size
+
+```{r average lengths graphs}
+# Make the plots in a 1 row by 3 columns output
+par(mfrow = c(1, 3))
 #loop through each sample size to create plot for each
 for (n_ in n) {
   #create empty plot where lines of each avg CI length from each method can be added
-  plot(NA, ylim = c(0,0.7), xlim = c(0,1), 
+  plot(NA, ylim = c(0,0.65), xlim = c(0,1), 
        #add appropriate labels
        ylab = "Average Length", xlab = "p", main = paste("Average length with n =",n_))
   #loop through number of data frames in results
@@ -413,9 +429,15 @@ for (n_ in n) {
     lines(df$p, df$int_length, col = i, lwd = 2, add = TRUE)
   }
   #add legend that specifies each method
-  legend(0.77, 
-         0.73, 
-         legend = c("Wald","AdjWald","Exact","Score","Raw","Boott"), 
+  legend(0.35, 
+         0.67, 
+         legend = c("Wald",
+                    "Adjusted Wald",
+                    "Exact",
+                    "Score",
+                    "Raw Bootstrap",
+                    "Bootstrap T"
+                    ), 
          lty = 1, 
          lwd = 2, 
          col = 1:6, 
@@ -424,4 +446,12 @@ for (n_ in n) {
 }
 ```
 
+For small samples (in our case $n = 15$), the bootstrap methods and the Score interval both seem to limit our confidence ranges, which we prefer intervals with smaller length (or less error in the bounds). For our medium size sample of $n = 100$, they are all pretty similar and for our large sample of $n = 200$, we can see very similar lengths with the bootstrap methods actually limiting our error slightly better than the other four methods. 
+
+## Key Takeaways
+
+Based on our computed graphs, there are several results that we can identify. When $n = 15$, the Adjusted-Wald and Score methods appear to have the best overall coverage in terms of achieving our desired confidence level. We can make the argument that the Adjusted-Wald method is better, because it achieves the desired level at the extreme values of $p$. With that being said, the average lengths for the Score method do appear to be smaller than the Adjusted-Wald interval lengths. This could explain why the Score method does not achieve the desired confidence level at the extreme levels of p. Moving to when $n = 100$, we can still consider the Adjusted-Wald and Score Methods to be the best in terms of overall coverage. The same argument for the Adjusted-Wald method can be made when discussing coverage at extreme levels of p, but this time the average length distributions for each method appear to be very similar. Finally, when $n = 200$, we can still see that Adjusted-Wald and Score methods have the best coverage; however, they are now very similar at the extremes, so a “best” distinction would be hard to make. Also, the distributions of average interval lengths once again are approximately the same for all six methods, so no distinction can be made here either.
+
 # Conclusions
+
+After reviewing the results, we have come to the following conclusions for the “best” interval method. In terms of overall results, the best performing methods are the Adjusted-Wald and Score Methods. Regarding smaller sample sizes, the Score method appears to perform the best overall, as it does well in reaching our ideal confidence level and limits the length of our error bounds. Now, with that being said, the Adjusted-Wald interval obtained the desired confidence level, even at the extremes where the Score method will miss just slightly. We can see for lower sample sizes when we are looking at the lower true proportion $p$ the other four methods tend to perform horribly when capturing the parameter in our confidence levels. On top of that, the Wald Interval tends to perform poorly when evaluating low sample sizes, but will perform much better as we increase our sample size. However, the average interval length for the Score method is narrower than the Adjusted-Wald, meaning we will get a more precise interval. Therefore, for smaller sample sizes, we recommend using the Score method when producing a Confidence Interval, because we only miss our confidence level slightly for very extreme values of $p$. This decision was referenced in the **Results** section. Now as the sample size increases (such as $n = 100$ or $n = 200$) we will recommend using the Adjusted-Wald interval. The Adjusted-Wald interval will always achieve our desired confidence level, whereas the Score Interval will hover at or just below it. Also, the average interval lengths for the six methods are approximately the same for all values of $p$, so no distinction on “best” method can truly be made, based on strictly looking at interval length. Therefore, we will put much more weight towards the fact that the Adjusted-Wald method will achieves our desired confidence level, even in the event of an extreme $p$ (where $p$ is close to 0 or 1). In conclusion, when producing confidence intervals, we will recommend using the Score method for smaller sample sizes and the Adjusted-Wald method for larger sample sizes. 
