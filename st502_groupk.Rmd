@@ -6,6 +6,7 @@ output: pdf_document
 urlcolor: blue
 header-includes:
   - \usepackage{float}
+  - \pagenumbering{gobble}
 ---
 
 ```{r setup, include=FALSE}
@@ -18,11 +19,12 @@ options(scipen = 999)
 rmarkdown::render("~/ST-502-Project-1/st502_groupk.Rmd", 
               output_format = "pdf_document", 
               output_options = list(
-                toc = TRUE, 
+                toc = FALSE, 
                 toc_depth = 3,
                 number_sections = TRUE,
                 extra_dependencies = "float",
-                always_allow_html = TRUE
+                always_allow_html = TRUE,
+                pagenumbering = "gobble"
                 )
               )
 ```
@@ -313,21 +315,20 @@ Using the created data, 95% confidence intervals (setting $\alpha = 0.05$) were 
 *Adjusted Wald*: $\hat{p} = \frac{y_i + 2}{n + 4}$ using the same interval formula as the **Wald Interval**  
 *Score*: $\frac{\hat{p} + \frac{z_{\alpha/2}^2}{2n} \pm z_{\alpha/2} \sqrt{\frac{\frac{\hat{p} (1 - \hat{p}) + z_{\alpha/2}^2}{4n}}{n}}}{1 + \frac{z_{\alpha/2}^2}{n}}$  
 *Clopper-Pearson* (Exact): ($(1 + \frac{n - y_i + 1}{y_i F_{2 y_i, 2(n - y_i + 1), 1 - \frac{\alpha}{2}}})^{-1}$, $(1 + \frac{n - y_i}{(y_i + 1) F_{2 (y_i + 1), 2(n - y_i), \frac{\alpha}{2}}})^{-1}$) where $F_{a, b, c}$ denotes the $1 - c$ quantile from the F-distribution with degrees of freedom $a$ and $b$  
-*Raw*: (theta_star_lower, theta_star_upper) where theta_star_lower and theta_star_upper are the alpha/2 and 1-alpha/2 quantiles of the bootstrap distribution of p_hat  
-*Boot t*: (theta_hat - delta_upper x SE_hat(estimator), theta_hat - delta_lower x SE_hat(estimator)) where delta_lower and delta upper are the quantiles from the bootstrap distribution of T = p_hat - p / SE_hat(estimator)
+*Raw*: ($\theta_{lower}^*$, $\theta_{upper}^*$) where $\theta_{lower}^*$ and $\theta_{upper}^*$ are the $\frac{\alpha}{2}$ and $1 - \frac{\alpha}{2}$ quantiles of the bootstrap distribution of $\hat{p}$  
+*Boot t*: ($\hat{p} - \delta_{upper} * \hat{SE}(\hat{p}), \hat{p} - \delta_{lower} * \hat{SE}(\hat{p})$) where $\delta_{lower}$ and $\delta_{upper}$ are the quantiles from the bootstrap distribution of $T = \frac{\hat{p} - p}{\hat{SE}(\hat{p})}$
 
-Each confidence interval across the different methods was evaluated to see if the true $p$ was contained in the interval, or if it missed above or below, by classifying a 1 or 0 in three new indicator columns, “count,” “count_under,” and “count_over.” This enabled proportions to be calculated for each of the new columns by taking the average of the count from the 1500 independent samples for each $n$/$p$ combination. A similar procedure was done to calculate the average interval length, but instead of taking an average of the count, the average difference was taken between the upper and lower bound of the confidence interval. 
+Each confidence interval across the different methods was evaluated to see if the true $p$ was contained in the interval, or if it missed above or below, by classifying a 1 or 0 in three new indicator columns, “count,” “count_under,” and “count_over.” This enabled proportions to be calculated for each of the new columns by taking the average of the count from the 1500 independent samples for each $n$ and $p$ combination. A similar procedure was done to calculate the average interval length, but instead of taking an average of the count, the average difference was taken between the upper and lower bound of the confidence interval. 
 
 # Results
 
-## Proportion of Intervals Capturing Parameter for Each Sample Size
-
-```{r n is 15 graphs}
+```{r n plots}
 #create list of all data frames from different confidence interval procedures
 results <- list("Wald" = df_wald_proportion, "Adjusted Wald" = df_adj_wald_proportion, 
                 "Exact" = df_exact_proportion, "Score" = df_score_proportion, 
                 "Raw Bootstrap" = df_raw_proportion, "Bootstrap t" = df_bootstrap_t_proportion)
-# Make the plots in a 2 rows by 3 columns output
+
+# Make the plots in a 2 rows by 3 columns output for n = 15
 par(mfrow = c(2, 3))
 #loop through number of data frames in results
 for (i in 1:6) {
@@ -350,16 +351,12 @@ for (i in 1:6) {
                     "Interval")
        )
   #add line for nominal confidence level
-  abline(h = 0.95,lwd = 1.5)
+  abline(h = 0.95, lwd = 1.5)
 }
-```
 
-As we can see for our lower sample size of $n = 15$, the Adjusted Wald seems to be performing the best of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$. The Score interval also seems to do a good job as well (minus the extremes) and the Exact interval also seems to do fairly well (with the "extreme" range is a little wider than the Score interval). The other interval methods do a poor job of correctly classifying our desired proportion of correct confidence intervals.
-
-```{r n is 100 graphs}
-# Make the plots in a 2 rows by 3 columns output
+# Make the plots in a 2 rows by 3 columns output for n = 100
 par(mfrow = c(2, 3))
-#loop through number of data frames in results
+# Loop through number of data frames in results for n = 100
 for (i in 1:6) {
   #store appropriate data frame
   df <- results[[i]]
@@ -380,16 +377,12 @@ for (i in 1:6) {
                     "Interval")
        )
   #add line for nominal confidence level
-  abline(h = 0.95,lwd = 1.5)
+  abline(h = 0.95, lwd = 1.5)
 }
-```
 
-As we can see for our medium sample size of $n = 100$, the Adjusted Wald again seems to be performing the best of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$ with the Score interval closely behind (minus the extremes being slightly below par). The other four intervals seem to do fairly well (with the "extreme" range is a little wider than the Score interval) but from these plots alone it is hard to say that one of those four are much "better" than the others.
-
-```{r n is 200 graphs}
-# Make the plots in a 2 rows by 3 columns output
+# Make the plots in a 2 rows by 3 columns output for n = 200
 par(mfrow = c(2, 3))
-#loop through number of data frames in results
+# Loop through number of data frames in results for n = 200
 for (i in 1:6) {
   #store appropriate data frame
   df <- results[[i]]
@@ -410,15 +403,12 @@ for (i in 1:6) {
                     "Interval")
        )
   #add line for nominal confidence level
-  abline(h = 0.95,lwd = 1.5)
+  abline(h = 0.95, lwd = 1.5)
 }
 ```
 
-As we can see for our large sample size of $n = 200$, the Adjusted Wald and Score intervals both seem to be performing the better than its "competitor" interval methods of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$ with the Score interval closely behind. The Exact and Wald intervals are close behind with just the extreme $p$ (true proportion values) having some slight faults. The other two bootstrap intervals seem to do fairly alright (with the "extreme" range is a little wider than the other intervals) and seem to be a little more inconsistent as getting to our ideal confidence level (which we set at 95%).
-
-## Average Confidence Interval Length Results for Each Sample Size
-
-```{r average lengths graphs}
+When evaluating the execution level for the different intervals for different sample sizes there are some trends that are present. First, we can see for our lower sample size of $n = 15$, the Adjusted Wald seems to be performing the best of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$. The Score interval also seems to do a good job as well (minus the extremes) and the Exact interval also seems to do fairly well (with the "extreme" range is a little wider than the Score interval). The other interval methods do a poor job of correctly classifying our desired proportion of correct confidence intervals. Then, we can see for our medium sample size of $n = 100$, the Adjusted Wald again seems to be performing the best of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$ with the Score interval closely behind (minus the extremes being slightly below par). The other four intervals seem to do fairly well (with the "extreme" range is a little wider than the Score interval) but from these plots alone it is hard to say that one of those four are much "better" than the others. Lastly, we can see for our large sample size of $n = 200$, the Adjusted Wald and Score intervals both seem to be performing the better than its "competitor" interval methods of capturing our necessary proportion of confidence intervals that should capture our true proportion parameter $p$ with the Score interval closely behind. The Exact and Wald intervals are close behind with just the extreme $p$ (true proportion values) having some slight faults. The other two bootstrap intervals seem to do fairly alright (with the "extreme" range is a little wider than the other intervals) and seem to be a little more inconsistent as getting to our ideal confidence level (which we set at 95%).
+```{r length plots}
 # Make the plots in a 1 row by 3 columns output
 par(mfrow = c(1, 3))
 #loop through each sample size to create plot for each
@@ -455,12 +445,46 @@ for (n_ in n) {
 }
 ```
 
-For small samples (in our case $n = 15$), the bootstrap methods and the Score interval both seem to limit our confidence ranges, which we prefer intervals with smaller length (or less error in the bounds). For our medium size sample of $n = 100$, they are all pretty similar and for our large sample of $n = 200$, we can see very similar lengths with the bootstrap methods actually limiting our error slightly better than the other four methods. 
+For small samples (in our case $n = 15$), the bootstrap methods and the Score interval both seem to limit our confidence ranges, which we prefer intervals with smaller length (or less error in the bounds). For our medium size sample of $n = 100$, they are all pretty similar and for our large sample of $n = 200$, we can see very similar lengths with the bootstrap methods actually limiting our error slightly better than the other four methods. Now comparing this to how well our confidence intervals captured our "true" value of $p$, we might lean on using the Score Interval for smaller sample sizes, while an Adjusted Wald Interval seems adequate for a larger sample. 
 
-## Key Takeaways
+```{r over under plot}
+# Get adj wald over-under splits by n
+adj_wald_splits <- df_adj_wald_proportion %>%
+  group_by(n) %>%
+  summarize(over = mean(num_over),
+            under = mean(num_under)) %>%
+  pivot_longer(cols = over:under, 
+               names_to = "error_type", 
+               values_to = "freq") %>%
+  mutate(name = "Adjusted Wald")
 
-Based on our computed graphs, there are several results that we can identify. When $n = 15$, the Adjusted-Wald and Score methods appear to have the best overall coverage in terms of achieving our desired confidence level. We can make the argument that the Adjusted-Wald method is better, because it achieves the desired level at the extreme values of $p$. With that being said, the average lengths for the Score method do appear to be smaller than the Adjusted-Wald interval lengths. This could explain why the Score method does not achieve the desired confidence level at the extreme levels of p. Moving to when $n = 100$, we can still consider the Adjusted-Wald and Score Methods to be the best in terms of overall coverage. The same argument for the Adjusted-Wald method can be made when discussing coverage at extreme levels of p, but this time the average length distributions for each method appear to be very similar. Finally, when $n = 200$, we can still see that Adjusted-Wald and Score methods have the best coverage; however, they are now very similar at the extremes, so a “best” distinction would be hard to make. Also, the distributions of average interval lengths once again are approximately the same for all six methods, so no distinction can be made here either.
+# Get score over-under splits by n
+score_splits <- df_score_proportion %>%
+  group_by(n) %>%
+  summarize(over = mean(num_over),
+            under = mean(num_under)) %>%
+  pivot_longer(cols = over:under, 
+               names_to = "error_type", 
+               values_to = "freq") %>%
+  mutate(name = "Score")
+
+# Make together into one df
+splits <- rbind(adj_wald_splits, score_splits)
+
+# Make over-under splits plot
+splits %>%
+  ggplot(aes(x = as.factor(n), y = freq, fill = error_type)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  facet_wrap(~ name) + 
+  labs(title = "Error for Types of Intervals Selected", 
+       x = "Sample Size",
+       y = "Proportion of Interval 'Missing' Either High or Low",
+       fill = "Type of Error") +
+  theme_bw()
+```
+
+Lastly, we want to check the Adjusted Wald and Score Intervals are both roughly missing the same proportion of intervals by overestimating compared to underestimating. Note that we want this to be even to show that the confidence intervals we are making are not biased. As we can see for our different sample sizes the over and under estimation values are about the same, meaning we are using unbiased interval estimators and further signaling that these are solid intervals to use for estimating the true proportion population value of $p$.
 
 # Conclusions
 
-After reviewing the results, our preferred methods for creating confidence intervals of binomial proportions are the Adjusted-Wald and Score Methods. These are our preferred methods since they had the best coverage and adequate interval lengths for our desired confidence level for all sample sizes, across the support of $p$. Further, these “approximate” methods performed better than the exact interval method, Clopper-Pearson, and had a much friendlier interpretation and calculation. Adjusted-Wald and Score are especially preferred for lower sample sizes as the other four methods performed poorly, especially when $p$ was close to 0 or 1. We slightly favor the Score method over the Adjusted Wald for small sample sizes as the Score method performed better for values of $p$ close to 0 and 1 and had a more narrow average interval length, meaning a more precise interval of $p$ can be given with the same level of confidence. For large sample sizes, we recommend using the Adjusted-Wald interval over the Score interval, as the Adjusted-Wald interval was more conservative for values of $p$ close to 0 or 1 by having coverage higher than our desired level of confidence, while having similar average interval lengths. 
+After reviewing the results, our preferred methods for creating confidence intervals of binomial proportions are the Adjusted-Wald and Score Methods. These are our preferred methods since they had the best coverage and adequate interval lengths for our desired confidence level for all sample sizes, across the support of $p$. Further, these “approximate” methods performed better than the exact interval method, Clopper-Pearson, and had a much friendlier interpretation and calculation. Adjusted-Wald and Score are especially preferred for lower sample sizes as the other four methods performed poorly, especially when $p$ was close to 0 or 1. We slightly favor the Score method over the Adjusted Wald for small sample sizes as the Score method performed better for values of $p$ close to 0 and 1 and had a more narrow average interval length, meaning a more precise interval of $p$ can be given with the same level of confidence. For large sample sizes, we recommend using the Adjusted-Wald interval over the Score interval, as the Adjusted-Wald interval was more conservative for values of $p$ close to 0 or 1 by having coverage higher than our desired level of confidence, while having similar average interval lengths to the other methods examined. 
