@@ -2,6 +2,7 @@
 title: "ST 502 Project 1"
 author: "Eric Warren, Chandler Ellsworth, Kevin Krupa"
 date: "`r Sys.Date()`"
+output: pdf_document
 urlcolor: blue
 header-includes:
   - \usepackage{float}
@@ -28,15 +29,15 @@ rmarkdown::render("~/ST-502-Project-1/st502_groupk.Rmd",
 
 # Goals of Project
 
-In this report, it is our goal to review the performance of confidence intervals through six different methods. These methods will be further explained below; however, we will be assessing their performance for different combinations of success probabilities and sample sizes. In each combination, we will assess the following: proportion of intervals that contain the true value of the parameter, proportion of intervals that are below/above the true value, as well as the average length of the intervals. After completing the goals above, it is our intention to select the “best” interval method. This will be determined by an amalgamation of the listed goals, not the best method for each goal. We will further determine if there are methods, other than our chosen “best”, that can also be considered useful. 
+In this report, it is our goal to compare the performance of confidence intervals of binomial proportions by making inference for various values of sample size ($n$) and success probability ($p$) based on a Monte Carlo simulation study. Six different methods will be used, and performance will be assessed by proportion of intervals that contain the true value of $p$, proportion of intervals that miss above or below $p$, and the average length of the interval. We hope to show through our analysis that approximate intervals are better than exact intervals and select the most favorable interval methods.
 
 # Methods of Project
 
-We are exploring six different types of interval estimation techniques that we can use to create our own 95% confidence intervals based on simulation of data. The intervals we are evaluating are the Wald Interval ($\hat{p} \pm z_{\frac{\alpha}{2}} \sqrt{\frac{\hat{p} (1 - \hat{p})}{n}}$), Adjusted Wald Interval (says $\hat{p} = \frac{y_i + 2}{n + 4}$ and using the same interval formula as the **Wald Interval**), Clopper-Pearson (Exact) Interval (lower bound is $(1 + \frac{n - y_i + 1}{y_i F_{2 y_i, 2(n - y_i + 1), 1 - \frac{\alpha}{2}}})^{-1}$ and upper bound is $(1 + \frac{n - y_i}{(y_i + 1) F_{2 (y_i + 1), 2(n - y_i), \frac{\alpha}{2}}})^{-1}$ where $F_{a, b, c}$ denotes the $1 - c$ quantile from the F-distribution with degrees of freedom $a$ and $b$), Score Interval ($\frac{\hat{p} + \frac{z_{\alpha/2}^2}{2n} \pm z_{\alpha/2} \sqrt{\frac{\frac{\hat{p} (1 - \hat{p}) + z_{\alpha/2}^2}{4n}}{n}}}{1 + \frac{z_{\alpha/2}^2}{n}}$), using a Raw percentile interval using a parametric bootstrap, and using a Bootstrap t interval using a parametric bootstrap. As what will be described more in depth in the Creation of Data section of our report, we will have 1500 independent samples for each combination of p (our true proportion from our population) and n (the sample size we take to “estimate” our proportion, pretending we do not know what the true value is). We will then explore the six different interval techniques and compare the proportion of our simulated data intervals that capture our “true” proportion ($p$). 
+To conduct inference on $p$, six different confidence interval methods were used: Wald, Adjusted Wald, Score, Clopper-Pearson, Raw Percentile Parametric Bootstrap (Raw), and Bootstrap t Parametric Bootstrap (Boot t). The Wald, Adjusted Wald, and Score intervals are based on asymptotic normality assumptions, the differences being that Wald uses the sample proportion, Adjusted Wald adds two successes and two failures to the sample proportion, and Score attempts to correct for small sample sizes and extreme proportions. Clopper-Pearson is an exact confidence interval that, in theory, should give desired confidence levels for any $p$. Lastly, Raw and Boot t approximate confidence intervals based on empirical quantiles from bootstrap resampling distributions, where Raw approximates the sample proportion’s distribution, and Boot t mimics a “t-type” statistic.
 
 # Creation of Data
 
-To create the data needed to complete the goals of this report, we will first start by correctly identifying the sequences of success probabilities (the true value of $p$) and sample sizes ($n$). After successfully establishing these sequences, we can then establish a loop that will parse through all combinations of the two sequences. Furthermore, for each combination, we will establish a data frame with three total variables (sample size, success probability, $y_i$). The $y_i$ column will be established using an R function (`rbinom()`) that randomly samples from a binomial distribution that takes the sample size and success probability variables as parameters. After successfully creating the data for that specific parameter combination, we will then do the same for all combinations and row bind all into one single data set that contains all observations from each combination of sample size and success probability. Lastly, to help with calculations later, we will create a column for the $\hat{p_i}$ estimates which can be calculated from the formula $\hat{p_i} = \frac{Y_i}{n}$. After generating this data, we will show briefly what it looks like to get a better understanding of our structure.
+The data was created by first identifying the ninety different combinations of $p$ and $n$. A loop was then used to draw 1500 independent samples ($y_i$) using the `rbinom()` function for each combination, with the results stored in a data frame with three columns: $n$, $p$, and $y_i$. Each data frame within the loop was combined with the previous, resulting in a consolidated data frame of the 1500 independent samples for each $n$ /$p$ combination. Lastly, $\hat{p_i} = \frac{Y_i}{n}$, the sample proportion, was then calculated for each sample. Below is a sample of the created data.
 ```{r generate data}
 # install.packages(c("tidyverse", "knitr", "kableExtra")) # Uncomment if you do not have libraries
 library(tidyverse)
@@ -80,7 +81,7 @@ knitr::kable(cbind(head(df), tail(df)), "latex") %>%
                             latex_options = "HOLD_position")
 ```
 
-Please note for this data that it is in *long format* which means that each combination of $n$, $p$, $y_i$, $\hat{p_i}$ is shown as one row. So for example, if we want to find all the randomly generated data for the combination of $n = 15$ and $p = 0.01$, we would want to find the `r N` rows that show its corresponding $y_i$ / $\hat{p_i}$ values.
+Note the data is in *long format* which means each combination of $n$, $p$, $y_i$, $\hat{p_i}$ are shown as one row. For example, the combination of $n = 15$ and $p = 0.01$ would need to be referenced by the `r N` rows that show the corresponding $y_i$ / $\hat{p_i}$ values.
 
 ```{r wald ci}
 # Get Wald Interval calculations for each n and p
@@ -305,9 +306,17 @@ df_bootstrap_t <- updateDF(bootstrap_t)
 df_bootstrap_t_proportion <- final_summary(df_bootstrap_t)
 ```
 
-# Calculating Qunatities
+# Calculating Quantities
 
-After creating our data, we are now going to use each interval method (mentioned in the *Methods* section) and use their respective 95% confidence interval formulas; this is setting $\alpha = 0.05$ when calculating the intervals for our $\hat{p}$ we generated for each independent sample. Afterwards, we will check to see if the interval created contains the true $p$ proportion parameter in it. If it does, which means the lower bound of the interval created from our $\hat{p}$ statistic is less than the true $p$ proportion parameter and the upper bound of the interval created from our $\hat{p}$ statistic is greater than the true $p$ proportion parameter then we would create a new indicator variable called `count` which would be 1 if this statement is true and 0 if false (meaning our calculated lower bound was greater than or equal to $p$ **or** our upper bound was less than or equal to $p$. Finally to get our proportion of intervals for each combination of $n$ (our sample size) and $p$ (our actual true proportion parameter) we would find the percentage of intervals that contain our true value of $p$ by finding the average of the `count` indicator variable. These quantities calculated from our simulation will be helpful in making recommendations of which intervals are the best to use.
+Using the created data, 95% confidence intervals (setting $\alpha = 0.05$) were calculated from each of the independent samples for each method using the following interval formulas:
+*Wald*: $\hat{p} \pm z_{\frac{\alpha}{2}} \sqrt{\frac{\hat{p} (1 - \hat{p})}{n}}$  
+*Adjusted Wald*: $\hat{p} = \frac{y_i + 2}{n + 4}$ using the same interval formula as the **Wald Interval**  
+*Score*: $\frac{\hat{p} + \frac{z_{\alpha/2}^2}{2n} \pm z_{\alpha/2} \sqrt{\frac{\frac{\hat{p} (1 - \hat{p}) + z_{\alpha/2}^2}{4n}}{n}}}{1 + \frac{z_{\alpha/2}^2}{n}}$  
+*Clopper-Pearson* (Exact): ($(1 + \frac{n - y_i + 1}{y_i F_{2 y_i, 2(n - y_i + 1), 1 - \frac{\alpha}{2}}})^{-1}$, $(1 + \frac{n - y_i}{(y_i + 1) F_{2 (y_i + 1), 2(n - y_i), \frac{\alpha}{2}}})^{-1}$) where $F_{a, b, c}$ denotes the $1 - c$ quantile from the F-distribution with degrees of freedom $a$ and $b$  
+*Raw*: (theta_star_lower, theta_star_upper) where theta_star_lower and theta_star_upper are the alpha/2 and 1-alpha/2 quantiles of the bootstrap distribution of p_hat  
+*Boot t*: (theta_hat - delta_upper x SE_hat(estimator), theta_hat - delta_lower x SE_hat(estimator)) where delta_lower and delta upper are the quantiles from the bootstrap distribution of T = p_hat - p / SE_hat(estimator)
+
+Each confidence interval across the different methods was evaluated to see if the true $p$ was contained in the interval, or if it missed above or below, by classifying a 1 or 0 in three new indicator columns, “count,” “count_under,” and “count_over.” This enabled proportions to be calculated for each of the new columns by taking the average of the count from the 1500 independent samples for each $n$/$p$ combination. A similar procedure was done to calculate the average interval length, but instead of taking an average of the count, the average difference was taken between the upper and lower bound of the confidence interval. 
 
 # Results
 
