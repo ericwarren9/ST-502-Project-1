@@ -10,7 +10,16 @@ header-includes:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.pos = "H", out.extra = "")
+knitr::opts_chunk$set(
+  echo = FALSE, 
+  warning = FALSE, 
+  message = FALSE, 
+  fig.pos = "H", 
+  out.extra = "", 
+  out.width = "50%", 
+  out.height = "50%", 
+  fig.align = "center"
+)
 options(scipen = 999)
 ```
 
@@ -23,8 +32,7 @@ rmarkdown::render("~/ST-502-Project-1/st502_groupk.Rmd",
                 toc_depth = 3,
                 number_sections = TRUE,
                 extra_dependencies = "float",
-                always_allow_html = TRUE,
-                pagenumbering = "gobble"
+                always_allow_html = TRUE
                 )
               )
 ```
@@ -39,7 +47,7 @@ To conduct inference on $p$, six different confidence interval methods were used
 
 # Creation of Data
 
-The data was created by first identifying the ninety different combinations of $p$ and $n$. A loop was then used to draw 1500 independent samples ($y_i$) using the `rbinom()` function for each combination, with the results stored in a data frame with three columns: $n$, $p$, and $y_i$. Each data frame within the loop was combined with the previous, resulting in a consolidated data frame of the 1500 independent samples for each $n$ /$p$ combination. Lastly, $\hat{p_i} = \frac{Y_i}{n}$, the sample proportion, was then calculated for each sample. Below is a sample of the created data.
+The data was created by first identifying the ninety different combinations of $p$ and $n$. A loop was then used to draw 1500 independent samples ($y_i$) using the `rbinom()` function for each combination, with the results stored in a data frame with three columns: $n$, $p$, and $y_i$. Each data frame within the loop was combined with the previous, resulting in a consolidated data frame of the 1500 independent samples for each combination of $n$ and $p$. Lastly, $\hat{p_i} = \frac{Y_i}{n}$, the sample proportion, was then calculated for each sample. Below is a sample of the created data.
 ```{r generate data}
 # install.packages(c("tidyverse", "knitr", "kableExtra")) # Uncomment if you do not have libraries
 library(tidyverse)
